@@ -1,0 +1,33 @@
+name: SAGCO Kernel Build
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-none
+
+      - name: Build kernel
+        working-directory: kernel
+        env:
+          RUSTFLAGS: "-C link-arg=-T../linker.ld"
+        run: cargo build --release --target x86_64-unknown-none
+
+      - name: Seal SHA256
+        run: |
+          sha256sum kernel/target/x86_64-unknown-none/release/sagco-kernel
+          echo "DNA=a364ca9f90356c85" >> $GITHUB_STEP_SUMMARY
+          echo "FP=6a6db9183a5c1112" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload kernel binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: sagco-kernel-elf
+          path: kernel/target/x86_64-unknown-none/release/sagco-kernel
+          retention-days: 30
